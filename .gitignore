@@ -1,0 +1,23 @@
+# IntelliJ
+.idea/
+*.iml
+
+# Build
+target/
+out/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+application-local.properties
+application-local.yml
+
+# Maven
+!.mvn/wrapper/maven-wrapper.jar
