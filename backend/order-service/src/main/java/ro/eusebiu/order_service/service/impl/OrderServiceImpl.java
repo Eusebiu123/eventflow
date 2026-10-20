@@ -10,12 +10,14 @@ import ro.eusebiu.order_service.dto.response.OrderResponse;
 import ro.eusebiu.order_service.entity.Order;
 import ro.eusebiu.order_service.entity.OrderStatus;
 import ro.eusebiu.order_service.exception.ResourceNotFoundException;
+import ro.eusebiu.order_service.kafka.event.OrderCreatedEvent;
 import ro.eusebiu.order_service.repository.OrderRepository;
 import ro.eusebiu.order_service.service.OrderService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.security.core.Authentication;
+import ro.eusebiu.order_service.kafka.producer.OrderEventProducer;
 
 
 @Service
@@ -25,6 +27,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final EventClient eventClient;
+    private final OrderEventProducer orderEventProducer;
 
     @Override
     public OrderResponse create(
@@ -54,6 +57,19 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         Order savedOrder = orderRepository.save(order);
+
+        OrderCreatedEvent eventCreated = new OrderCreatedEvent(
+                savedOrder.getId(),
+                savedOrder.getEventId(),
+                savedOrder.getEventTitle(),
+                savedOrder.getUserId(),
+                savedOrder.getUsername(),
+                savedOrder.getTicketsCount(),
+                savedOrder.getTotalPrice(),
+                savedOrder.getCreatedAt()
+        );
+
+        orderEventProducer.sendOrderCreatedEvent(eventCreated);
 
         return toResponse(savedOrder);
     }
