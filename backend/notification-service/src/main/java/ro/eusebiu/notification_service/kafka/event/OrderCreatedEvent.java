@@ -9,6 +9,7 @@ public record OrderCreatedEvent(
         String eventTitle,
         Long userId,
         String username,
+        String email,
         Integer ticketsCount,
         BigDecimal totalPrice,
         LocalDateTime createdAt
