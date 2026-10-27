@@ -30,7 +30,8 @@ public class JwtService {
                 .claims(Map.of(
                         "userId", user.getId(),
                         "role", user.getRole().name(),
-                        "username", user.getUsername()
+                        "username", user.getUsername(),
+                        "email", user.getEmail()
                 ))
                 .subject(user.getUsername())
                 .issuedAt(new Date())
@@ -41,6 +42,9 @@ public class JwtService {
 
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
+    }
+    public String extractEmail(String token) {
+        return extractAllClaims(token).get("email", String.class);
     }
 
     public String extractRole(String token) {

@@ -16,9 +16,14 @@ import ro.eusebiu.order_service.service.OrderService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
+
 import org.springframework.security.core.Authentication;
 import ro.eusebiu.order_service.kafka.producer.OrderEventProducer;
-
+import ro.eusebiu.order_service.security.AuthenticatedUserDetails;
+import tools.jackson.databind.ObjectMapper;
+import ro.eusebiu.order_service.entity.OutboxEvent;
+import ro.eusebiu.order_service.repository.OutboxEventRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -28,19 +33,25 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
     private final EventClient eventClient;
     private final OrderEventProducer orderEventProducer;
+    private final OutboxEventRepository outboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     public OrderResponse create(
             CreateOrderRequest request,
             Authentication authentication
     ) {
+        AuthenticatedUserDetails details =
+                (AuthenticatedUserDetails) authentication.getDetails();
+
+        Long userId = details.userId();
+        String email = details.email();
+        String username = authentication.getName();
+
         EventResponse event = eventClient.reserveSeats(
                 request.eventId(),
                 request.ticketsCount()
         );
-
-        Long userId = (Long) authentication.getCredentials();
-        String username = authentication.getName();
 
         BigDecimal totalPrice = event.price()
                 .multiply(BigDecimal.valueOf(request.ticketsCount()));
@@ -58,18 +69,33 @@ public class OrderServiceImpl implements OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
+        String messageId = UUID.randomUUID().toString();
+
         OrderCreatedEvent eventCreated = new OrderCreatedEvent(
+                messageId,
                 savedOrder.getId(),
                 savedOrder.getEventId(),
                 savedOrder.getEventTitle(),
                 savedOrder.getUserId(),
                 savedOrder.getUsername(),
+                email,
                 savedOrder.getTicketsCount(),
                 savedOrder.getTotalPrice(),
                 savedOrder.getCreatedAt()
         );
 
-        orderEventProducer.sendOrderCreatedEvent(eventCreated);
+        String payload = objectMapper.writeValueAsString(eventCreated);
+
+        OutboxEvent outboxEvent = OutboxEvent.builder()
+                .aggregateType("ORDER")
+                .aggregateId(savedOrder.getId())
+                .eventType("OrderCreatedEvent")
+                .payload(payload)
+                .published(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        outboxEventRepository.save(outboxEvent);
 
         return toResponse(savedOrder);
     }

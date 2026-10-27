@@ -5,14 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import ro.eusebiu.notification_service.kafka.event.OrderCreatedEvent;
-import ro.eusebiu.notification_service.service.EmailNotificationService;
+import ro.eusebiu.notification_service.service.NotificationProcessingService;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class OrderCreatedEventConsumer {
 
-    private final EmailNotificationService emailNotificationService;
+    private final NotificationProcessingService notificationProcessingService;
 
     @KafkaListener(
             topics = "order.created",
@@ -21,35 +21,16 @@ public class OrderCreatedEventConsumer {
     public void consumeOrderCreatedEvent(OrderCreatedEvent event) {
 
         log.info(
-                "OrderCreatedEvent received: orderId={}, eventId={}, userId={}, username={}, email={}, ticketsCount={}, totalPrice={}",
-                event.orderId(),
-                event.eventId(),
-                event.userId(),
-                event.username(),
-                event.email(),
-                event.ticketsCount(),
-                event.totalPrice()
+                "Kafka event received: messageId={}, orderId={}",
+                event.messageId(),
+                event.orderId()
         );
 
-        if (event.email() == null || event.email().isBlank()) {
-            log.warn(
-                    "Email notification skipped for orderId={}: missing email",
-                    event.orderId()
-            );
-            return;
-        }
-
-        emailNotificationService.sendOrderCreatedEmail(
-                event.email(),
-                event.orderId(),
-                event.eventTitle(),
-                event.ticketsCount()
-        );
+        notificationProcessingService.processOrderCreated(event);
 
         log.info(
-                "Order notification sent successfully: orderId={}, email={}",
-                event.orderId(),
-                event.email()
+                "Kafka event processing completed: messageId={}",
+                event.messageId()
         );
     }
 }
