@@ -2,6 +2,8 @@ package ro.eusebiu.notification_service.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -39,7 +41,18 @@ public class ProcessedEvent {
 
     @Column(nullable = false)
     private Long orderId;
+    @Column(name = "claim_token")
+    private String claimToken;
+
+    @Column(name = "lease_until")
+    private LocalDateTime leaseUntil;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProcessingStatus status;
 
     @Column(nullable = false)
+    private LocalDateTime createdAt;
+
     private LocalDateTime processedAt;
 }
