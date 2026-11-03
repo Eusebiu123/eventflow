@@ -1,3 +1,4 @@
+
 package ro.eusebiu.order_service.client;
 
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,9 @@ public class EventClient {
     @Value("${event.service.url}")
     private String eventServiceUrl;
 
+    @Value("${internal.service.secret}")
+    private String internalServiceSecret;
+
     public EventResponse getEventById(Long eventId) {
         return restClient.get()
                 .uri(eventServiceUrl + "/api/events/{id}", eventId)
@@ -24,7 +28,12 @@ public class EventClient {
 
     public EventResponse reserveSeats(Long eventId, Integer ticketsCount) {
         return restClient.post()
-                .uri(eventServiceUrl + "/api/events/{id}/reserve?ticketsCount={ticketsCount}", eventId, ticketsCount)
+                .uri(
+                        eventServiceUrl + "/api/events/{id}/reserve?ticketsCount={ticketsCount}",
+                        eventId,
+                        ticketsCount
+                )
+                .header("X-Internal-Service-Key", internalServiceSecret)
                 .retrieve()
                 .body(EventResponse.class);
     }
